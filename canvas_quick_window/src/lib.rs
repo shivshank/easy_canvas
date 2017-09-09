@@ -1,0 +1,86 @@
+extern crate glfw;
+extern crate canvas;
+extern crate gl;
+
+use canvas::DrawCmd;
+
+use glfw::ffi::*;
+
+use std::ffi::CString;
+use std::ptr;
+use std::thread;
+use std::sync::mpsc::{channel, Sender};
+
+/// Passed to the callback, used to obtain the transmitter for notifying window of draw calls.
+pub struct Window {
+    tx: Option<Sender<DrawCmd>>
+}
+
+impl Window {
+    fn new(tx: Sender<DrawCmd>) -> Window {
+        Window {
+            tx: Some(tx)
+        }
+    }
+}
+impl canvas::Host for Window {
+    fn sender(&mut self) -> Option<Sender<DrawCmd>> {
+        self.tx.take()
+    }
+}
+
+/// Create a new window that listens for draw commands issued from a thread initiated with cb.
+pub fn create(title: &str, width: i32, height: i32, refresh_rate: f64, cb: fn(Window)) {
+    let window = create_raw(title, width, height);
+    unsafe {
+        gl::Viewport(0, 0, width, height);
+    }
+    let (tx, rx) = channel();
+    let surrogate = Window::new(tx);
+    thread::spawn(move || {
+        cb(surrogate);
+    });
+    let mut stale = false;
+    unsafe {
+        while glfwWindowShouldClose(window) == 0 {
+            // process any events that happened since the last tick (roughly refresh_rate
+            // seconds ago)
+            while let Ok(cmd) = rx.try_recv() {
+                match cmd {
+                    DrawCmd::Clear(c) => {
+                        gl::ClearColor(c.0, c.1, c.2, 1.0);
+                        gl::Clear(gl::COLOR_BUFFER_BIT);
+                    },
+                    _ => {}
+                }
+                stale = true;
+            }
+            if stale {
+                glfwSwapBuffers(window);
+            }
+            glfwWaitEventsTimeout(refresh_rate);
+        }
+        glfwTerminate();
+    }
+}
+
+fn create_raw(title: &str, width: i32, height: i32) -> *mut GLFWwindow {
+    unsafe {
+        if glfwInit() == 0 {
+            panic!("Failed to initialize GLFW");
+        }
+        let title_c_str = CString::new(title).unwrap();
+        let w = glfwCreateWindow(width, height, title_c_str.as_ptr() as *const _,
+            ptr::null_mut(), ptr::null_mut());
+        glfwMakeContextCurrent(w);
+        gl::load_with(|s| {
+            let c_str = CString::new(s).unwrap();
+            glfwGetProcAddress(c_str.as_ptr() as _) as _
+        });
+        if w.is_null() {
+            glfwTerminate();
+            panic!("GLFW failed to create a window");
+        }
+        w
+    }
+}

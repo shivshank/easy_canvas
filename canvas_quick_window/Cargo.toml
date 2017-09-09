@@ -1,0 +1,12 @@
+[package]
+name = "canvas_quick_window"
+version = "0.1.0"
+authors = ["shivshank"]
+
+[dependencies]
+gl = "0.6.0"
+canvas = { path = "../canvas" }
+
+[dependencies.glfw]
+git = "https://github.com/bjz/glfw-rs.git"
+default-features = false
