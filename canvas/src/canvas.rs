@@ -2,7 +2,6 @@ use color::Color;
 use style::Style;
 use shape::{ToDrawCmd, DrawCmd};
 
-use cgmath::prelude::*;
 use cgmath::Matrix4;
 
 use std::sync::mpsc::Sender;
