@@ -12,6 +12,42 @@ use std::os::raw::c_void;
 use std::mem::size_of_val;
 use std::i16;
 
+static VERTEX_SHADER: &'static str = r#"
+    #version 330 core
+
+    // uniform mat4 proj_matrix;
+    // uniform mat4 cam_matrix;
+
+    layout (location = 0) in vec3 pos;
+    layout (location = 1) in vec3 color;
+    layout (location = 2) in vec2 uv;
+
+    out vec3 pass_color;
+    out vec2 pass_uv;
+
+    void main(void) {
+        gl_Position = vec4(pos, 1.0);
+
+        pass_color = color;
+        pass_uv = uv;
+    }
+"#;
+
+static FRAGMENT_SHADER: &'static str = r#"
+    #version 330 core
+
+    in vec3 pass_color;
+    in vec2 pass_uv;
+
+    out vec4 FragColor;
+
+    uniform sampler2D diffuse;
+
+    void main(void) {
+        FragColor = texture(diffuse, pass_uv) * vec4(pass_color, 1.0);
+    }
+"#;
+
 macro_rules! wrap_types {
     (
         $(
@@ -49,24 +85,26 @@ macro_rules! wrap_types {
 
 wrap_types! {
     #[doc = "Framebuffer object"]
-    pub struct GlFbo(GLuint);
-    pub struct GlTex(GLuint);
+    pub struct Fbo(GLuint);
+    pub struct Tex(GLuint);
     #[doc = "Renderbuffer object"]
-    pub struct GlRbo(GLuint);
+    pub struct Rbo(GLuint);
     #[doc = "Vertex array object"]
     pub struct Vao(GLuint);
     pub struct BuffObj(GLuint);
     pub struct GlProgram(GLuint);
+    pub struct Shader(GLuint);
 }
 
 pub struct GlRenderTarget {
     width: i32,
     height: i32,
-    ms_fbo: GlFbo,
-    ms_tex: GlTex,
-    ms_rbo: GlRbo,
-    fbo: GlFbo,
-    tex: GlTex,
+    ms_fbo: Fbo,
+    ms_tex: Tex,
+    ms_rbo: Rbo,
+    fbo: Fbo,
+    tex: Tex,
+    diffuse_loc: GLint,
     screen_program: GlProgram,
     screen_quad_vao: Vao,
     screen_quad_vbo: BuffObj,
@@ -90,6 +128,108 @@ pub enum GlError {
     /// The command is trying to render to or read from the framebuffer while the currently bound framebuffer is not framebuffer complete (i.e. the return value from glCheckFramebufferStatus is not FRAMEBUFFER_COMPLETE = gl::FRAMEBUFFER_COMPLETE). The offending command is ignored and has no other side effect than to set the error flag.
     INVALID_FRAMEBUFFER_OPERATION = gl::INVALID_FRAMEBUFFER_OPERATION,
     OUT_OF_MEMORY = gl::OUT_OF_MEMORY,
+}
+
+macro_rules! get_info_log {
+    ($get_attr:ident, $get_log:ident, $gl_id:expr) => {{
+        let mut log_length_glint: GLint = 0;
+        unsafe {
+            $get_attr($gl_id, gl::INFO_LOG_LENGTH, &mut log_length_glint);
+        }
+        let log_length = log_length_glint as usize;
+        if log_length == 0 {
+            None
+        } else {
+            let mut raw_log = Vec::<u8>::with_capacity(log_length);
+            unsafe {
+                $get_log($gl_id, log_length as GLsizei,
+                    0 as *mut GLsizei, raw_log.as_mut_ptr() as *mut GLchar);
+                raw_log.set_len(log_length);
+            }
+            let log = String::from_utf8(raw_log)
+                .expect("OpenGL returned invalid utf8 in a program info log");
+            Some(log)
+        }
+    }}
+}
+
+/// Creates a program.
+fn create_program(vert_shader: Shader, frag_shader: Shader) -> GlProgram {
+    unsafe {
+        let gl_id = gl::CreateProgram();
+        if gl_id == 0 {
+            panic!("Failed to create program");
+        }
+        gl::AttachShader(gl_id, vert_shader);
+        gl::AttachShader(gl_id, frag_shader);
+        gl::LinkProgram(gl_id);
+        // if shaders are left attached they will never be deleted until the program is deleted
+        gl::DetachShader(gl_id, vert_shader);
+        gl::DetachShader(gl_id, frag_shader);
+
+        let mut link_status = 0;
+        gl::GetProgramiv(gl_id, gl::LINK_STATUS, &mut link_status);
+        if link_status != 1 {
+            use gl::{GetProgramiv, GetProgramInfoLog};
+            match get_info_log!(GetProgramiv, GetProgramInfoLog, gl_id) {
+                Some(log) => {
+                    panic!("Program creation failed with the following log:\n\n{}\n", log);
+                }
+                None => {
+                    panic!("Program creation failed with no log provided.");
+                }
+            }
+        }
+
+        let mut status = -1;
+        gl::ValidateProgram(gl_id);
+        gl::GetProgramiv(gl_id, gl::VALIDATE_STATUS, &mut status);
+        if status != 1 {
+            use gl::{GetProgramiv, GetProgramInfoLog};
+            match get_info_log!(GetProgramiv, GetProgramInfoLog, gl_id) {
+                Some(log) => {
+                    panic!("Program creation failed with the following log:\n\n{}\n", log);
+                }
+                None => {
+                    panic!("Program creation failed with no log provided.");
+                }
+            }
+        }
+
+        gl_id
+    }
+}
+
+fn create_shader(kind: GLenum, source: &str) -> Shader {
+    unsafe {
+        let gl_id = gl::CreateShader(kind as u32);
+        if gl_id == 0 {
+            panic!("Failed to create new shader!")
+        }
+        gl::ShaderSource(gl_id, 1, &(source.as_ptr() as *const i8), &(source.len() as i32));
+        gl::CompileShader(gl_id);
+
+        let mut status = 0;
+        gl::GetShaderiv(gl_id, gl::COMPILE_STATUS, &mut status);
+        if status != 1 {
+            use gl::{GetShaderiv, GetShaderInfoLog};
+            match get_info_log!(GetShaderiv, GetShaderInfoLog, gl_id) {
+                Some(log) => {
+                    panic!("Shader creation failed with the following log:\n{}", log);
+                }
+                None => {
+                    panic!("Shader creation failed with no log provided.");
+                }
+            }
+        }
+        gl_id
+    }
+}
+
+fn delete_shader(shader: Shader) {
+    unsafe {
+        gl::DeleteShader(shader);
+    }
 }
 
 /// Create a vao along with a corresponding vertex buffer object.
@@ -149,7 +289,7 @@ fn make_projection_matrix(width: u32, height: u32, _layers: u32) -> Matrix4<f32>
 }
 
 /// Create a multi-sampled, FBO with depth, stencil, and RGBA color attachments
-fn create_ms_cds_render_target(width: i32, height: i32) -> (GlFbo, GlTex, GlRbo) {
+fn create_ms_cds_render_target(width: i32, height: i32) -> (Fbo, Tex, Rbo) {
     let samples = 4;
     unsafe {
         let mut ms_fbo = 0;
@@ -185,7 +325,7 @@ fn create_ms_cds_render_target(width: i32, height: i32) -> (GlFbo, GlTex, GlRbo)
                     }
                 }
 
-                fn create_color_render_target(width: i32, height: i32) -> (GlFbo, GlTex) {
+                fn create_color_render_target(width: i32, height: i32) -> (Fbo, Tex) {
                     unsafe {
                         let mut fbo = 0;
                         gl::GenFramebuffers(1, &mut fbo);
@@ -221,7 +361,22 @@ pub fn create_render_target(width: i32, height: i32) -> GlRenderTarget {
     let (ms_fbo, ms_tex, ms_rbo) = create_ms_cds_render_target(width, height);
     let (fbo, tex) = create_color_render_target(width, height);
     let (screen_quad_vao, screen_quad_vbo) = create_vao();
+    let screen_program = {
+        let vert = create_shader(gl::VERTEX_SHADER, VERTEX_SHADER);
+        let frag = create_shader(gl::FRAGMENT_SHADER, FRAGMENT_SHADER);
+        let program = create_program(vert, frag);
+        delete_shader(vert);
+        delete_shader(frag);
+        program
+    };
+    let diffuse_loc;
     unsafe {
+        diffuse_loc = gl::GetUniformLocation(screen_program,
+            b"diffuse\0".as_ptr() as *const _);
+        gl::UseProgram(screen_program);
+        gl::Uniform1i(diffuse_loc, 0);
+        gl::UseProgram(0);
+
         gl::BindBuffer(gl::ARRAY_BUFFER, screen_quad_vbo);
         // counter clockwise
         let data = [
@@ -245,7 +400,8 @@ pub fn create_render_target(width: i32, height: i32) -> GlRenderTarget {
         ms_rbo,
         fbo,
         tex,
-        screen_program: 0,
+        diffuse_loc,
+        screen_program,
         screen_quad_vao,
         screen_quad_vbo,
     }
@@ -305,7 +461,7 @@ pub fn parse_commands(target: &GlRenderTarget, rx: &Receiver<DrawCmd>) -> bool {
 /// Render the flat color texture to whatever framebuffer is currently bound.
 pub fn draw_flat_target(target: &GlRenderTarget) {
     unsafe {
-        // gl::UseProgram(target.screen_program);
+        gl::UseProgram(target.screen_program);
 
         gl::ActiveTexture(gl::TEXTURE0);
         gl::BindTexture(gl::TEXTURE_2D, target.tex);
