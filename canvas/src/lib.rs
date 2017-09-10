@@ -12,11 +12,15 @@
 //!
 
 extern crate cgmath;
+#[cfg(feature = "drawing")]
+extern crate gl;
 
 pub mod color;
 pub mod style;
 pub mod shape;
 pub mod canvas;
+#[cfg(feature = "drawing")]
+pub mod drawing;
 
 pub use color::*;
 pub use style::*;
