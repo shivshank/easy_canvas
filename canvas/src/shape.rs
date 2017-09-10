@@ -38,7 +38,7 @@ macro_rules! make_shapes {
         $(
             pub struct $struct_form {
                 $(
-                    $field: $field_ty
+                    pub $field: $field_ty
                 ),*,
             }
 
