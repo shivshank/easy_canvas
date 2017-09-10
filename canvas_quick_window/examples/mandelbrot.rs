@@ -18,5 +18,5 @@ fn mandelbrot(window: Window) {
     };
 
     // ctx.draw(Rect(0, 0, 10, 10), style);
-    ctx.clear((200, 200, 200));
+    ctx.clear((200, 150, 200));
 }

@@ -5,8 +5,11 @@ authors = ["shivshank"]
 
 [dependencies]
 gl = "0.6.0"
-canvas = { path = "../canvas" }
 
 [dependencies.glfw]
 git = "https://github.com/bjz/glfw-rs.git"
 default-features = false
+
+[dependencies.canvas]
+path = "../canvas"
+features = ["drawing"]

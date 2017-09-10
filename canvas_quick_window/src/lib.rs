@@ -2,6 +2,7 @@ extern crate glfw;
 extern crate canvas;
 extern crate gl;
 
+use canvas::drawing;
 use canvas::DrawCmd;
 
 use glfw::ffi::*;
@@ -40,24 +41,17 @@ pub fn create(title: &str, width: i32, height: i32, refresh_rate: f64, cb: fn(Wi
     thread::spawn(move || {
         cb(surrogate);
     });
-    let mut stale = false;
+    let target = drawing::create_render_target(width, height);
     unsafe {
         while glfwWindowShouldClose(window) == 0 {
             // process any events that happened since the last tick (roughly refresh_rate
             // seconds ago)
-            while let Ok(cmd) = rx.try_recv() {
-                match cmd {
-                    DrawCmd::Clear(c) => {
-                        gl::ClearColor(c.0, c.1, c.2, 1.0);
-                        gl::Clear(gl::COLOR_BUFFER_BIT);
-                    },
-                    _ => {}
-                }
-                stale = true;
-            }
+            let stale = drawing::parse_commands(&target, &rx);
             if stale {
+                drawing::draw_flat_target(&target);
                 glfwSwapBuffers(window);
             }
+            drawing::print_gl_error("after render");
             glfwWaitEventsTimeout(refresh_rate);
         }
         glfwTerminate();
