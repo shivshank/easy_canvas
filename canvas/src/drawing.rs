@@ -20,10 +20,10 @@ static VERTEX_SHADER: &'static str = r#"
     // uniform mat4 cam_matrix;
 
     layout (location = 0) in vec3 pos;
-    layout (location = 1) in vec3 color;
+    layout (location = 1) in vec4 color;
     layout (location = 2) in vec2 uv;
 
-    out vec3 pass_color;
+    out vec4 pass_color;
     out vec2 pass_uv;
 
     void main(void) {
@@ -38,7 +38,7 @@ static VERTEX_SHADER: &'static str = r#"
 static FRAGMENT_SHADER: &'static str = r#"
     #version 330 core
 
-    in vec3 pass_color;
+    in vec4 pass_color;
     in vec2 pass_uv;
 
     out vec4 FragColor;
@@ -46,7 +46,7 @@ static FRAGMENT_SHADER: &'static str = r#"
     uniform sampler2D diffuse;
 
     void main(void) {
-        FragColor = texture(diffuse, pass_uv) * vec4(pass_color, 1.0);
+        FragColor = texture(diffuse, pass_uv) * pass_color;
     }
 "#;
 
