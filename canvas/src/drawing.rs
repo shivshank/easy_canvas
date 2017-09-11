@@ -402,8 +402,9 @@ pub fn create_post_process_shader(frag_shader: &str) -> GlProgram {
     frag_shader_source.push_str(frag_shader);
     frag_shader_source.push_str(r#"
         void main(void) {
+            vec2 fragCoord = pass_uv * vec2(resolution);
             vec4 out_color = pass_color;
-            mainImage(out_color, pass_uv);
+            mainImage(out_color, fragCoord, pass_uv);
             FragColor = out_color;
         }
     "#);

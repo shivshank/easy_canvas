@@ -5,24 +5,23 @@ use canvas::Target;
 
 use quick_window::Window;
 
+use std::fs::File;
+use std::io::Read;
+
 fn main() {
-    quick_window::create("Fractals!", 800, 600, 1.0 / 60.0, mandelbrot);
+    quick_window::create("Fractals!", 640, 360, 1.0 / 60.0, mandelbrot);
 }
 
 fn mandelbrot(window: Window) {
-    let ctx = canvas::create(window, 800, 600);
+    let ctx = canvas::create(window, 640, 360);
 
-    // ctx.draw(Rect(0, 0, 10, 10), style);
-    ctx.use_post_process(r#"
-        void mainImage(inout vec4 fragColor, in vec2 uv) {
-            vec2 fragCoord = uv * resolution;
-            if (length(fragCoord - resolution * 0.5) < 100.0) {
-                fragColor = texture(diffuse, uv);
-            } else {
-                fragColor = vec4(0.0, 0.0, 0.0, 0.0);
-            }
-        }
-    "#);
+    let mut frag_source = String::new();
+    File::open("examples/res/mandelbrot.glsl")
+        .expect("Failed to find fragment shader file")
+        .read_to_string(&mut frag_source)
+        .expect("Failed to read contents");
+
+    ctx.use_post_process(&frag_source);
 
     ctx.clear((200, 150, 200, 0.25));
 }
