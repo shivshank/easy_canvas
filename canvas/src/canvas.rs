@@ -37,6 +37,11 @@ impl Canvas {
             tx: host.sender().expect("No sender was available from the host"),
         }
     }
+
+    pub fn use_post_process(&self, shader: &str) {
+        self.tx.send(DrawCmd::UsePostProcess(shader.to_string()))
+            .expect("Canvas host hung up");
+    }
 }
 
 /// Wraps Canvas::new().

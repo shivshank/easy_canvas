@@ -68,6 +68,7 @@ make_shapes! {
     pub enum DrawCmd {
         ..,
         Clear(Rgba),
+        UsePostProcess(String),
     }
 
     pub struct Rect aka rect {

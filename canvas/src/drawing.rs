@@ -1,3 +1,7 @@
+//! Very unstable drawing API, used by quick_window. Use at your own risk!
+//!
+//! Needs a significant overhaul and has a lot of areas that can be improved for performance.
+
 use shape::DrawCmd;
 use color::Rgba;
 
@@ -71,6 +75,8 @@ pub struct GlRenderTarget {
     tex: Tex,
     diffuse_loc: GLint,
     screen_program: GlProgram,
+    post_process_program: Option<GlProgram>,
+    post_process_res_loc: GLint,
     screen_quad_vao: Vao,
     screen_quad_vbo: BuffObj,
 }
@@ -182,7 +188,7 @@ fn create_shader(kind: GLenum, source: &str) -> Shader {
             use gl::{GetShaderiv, GetShaderInfoLog};
             match get_info_log!(GetShaderiv, GetShaderInfoLog, gl_id) {
                 Some(log) => {
-                    panic!("Shader creation failed with the following log:\n{}", log);
+                    panic!("Shader creation failed with the following log:\n\n{}\n", log);
                 }
                 None => {
                     panic!("Shader creation failed with no log provided.");
@@ -239,7 +245,7 @@ fn declare_format() {
         // color
         gl::VertexAttribPointer(1, 4, gl::UNSIGNED_BYTE, gl::TRUE, stride, 12 as * const _);
         // uv
-        gl::VertexAttribPointer(2, 2, gl::UNSIGNED_SHORT, gl::TRUE, stride, 16 as * const _);
+        gl::VertexAttribPointer(2, 2, gl::SHORT, gl::TRUE, stride, 16 as * const _);
     }
 }
 
@@ -352,7 +358,7 @@ pub fn create_render_target(width: i32, height: i32) -> GlRenderTarget {
             Vertex ([1.0, 1.0, 0.0f32], [255, 255, 255, 255u8], [i16::MAX, 0]),
 
             Vertex ([1.0, 1.0, 0.0f32], [255, 255, 255, 255u8], [i16::MAX, 0]),
-            Vertex ([-0.5, 1.0, 0.0f32], [255, 255, 255, 255u8], [0, 0]),
+            Vertex ([-1.0, 1.0, 0.0f32], [255, 255, 255, 255u8], [0, 0]),
             Vertex ([-1.0, -1.0, 0.0f32], [255, 255, 255, 255u8], [0, i16::MAX]),
         ];
         gl::BufferData(gl::ARRAY_BUFFER, size_of_val(&data) as isize,
@@ -368,10 +374,45 @@ pub fn create_render_target(width: i32, height: i32) -> GlRenderTarget {
         fbo,
         tex,
         diffuse_loc,
+        post_process_program: None,
+        post_process_res_loc: -1,
         screen_program,
         screen_quad_vao,
         screen_quad_vbo,
     }
+}
+
+/// Create a new custom post processing shader.
+///
+/// Calls a function mainImage(inout fragColor, in pass_uv), which is expected to be defined in
+/// the frag_shader argument.
+pub fn create_post_process_shader(frag_shader: &str) -> GlProgram {
+    let mut frag_shader_source = String::new();
+    frag_shader_source.push_str(r#"
+        #version 330 core
+
+        in vec4 pass_color;
+        in vec2 pass_uv;
+
+        out vec4 FragColor;
+
+        uniform sampler2D diffuse;
+        uniform ivec2 resolution;
+    "#);
+    frag_shader_source.push_str(frag_shader);
+    frag_shader_source.push_str(r#"
+        void main(void) {
+            vec4 out_color = pass_color;
+            mainImage(out_color, pass_uv);
+            FragColor = out_color;
+        }
+    "#);
+    let vert = create_shader(gl::VERTEX_SHADER, VERTEX_SHADER);
+    let frag = create_shader(gl::FRAGMENT_SHADER, &frag_shader_source);
+    let program = create_program(vert, frag);
+    delete_shader(vert);
+    delete_shader(frag);
+    program
 }
 
 pub fn delete_render_target(target: GlRenderTarget) {
@@ -384,13 +425,19 @@ pub fn delete_render_target(target: GlRenderTarget) {
             ms_rbo,
             fbo,
             tex,
-            diffuse_loc,
+            diffuse_loc: _,
+            post_process_program,
+            post_process_res_loc: _,
             screen_program,
             screen_quad_vao,
             screen_quad_vbo,
         } = target;
 
         gl::UseProgram(0);
+        match post_process_program {
+            Some(p) => gl::DeleteProgram(p),
+            None => {},
+        }
         gl::DeleteProgram(screen_program);
 
         gl::BindVertexArray(0);
@@ -455,7 +502,7 @@ pub fn enable_blending() {
 /// Updates the multi-sampled FBO and copies the result to the "flat" FBO.
 ///
 /// Enables blending and Depth test.
-pub fn parse_commands(target: &GlRenderTarget, rx: &Receiver<DrawCmd>) -> bool {
+pub fn parse_commands(target: &mut GlRenderTarget, rx: &Receiver<DrawCmd>) -> bool {
     enable_blending();
     unsafe { gl::Enable(gl::DEPTH_TEST) };
     use_ms_render_target(target);
@@ -465,7 +512,26 @@ pub fn parse_commands(target: &GlRenderTarget, rx: &Receiver<DrawCmd>) -> bool {
         match cmd {
             DrawCmd::Clear(c) => {
                 clear(c);
-            },
+            }
+            DrawCmd::UsePostProcess(src) => {
+                if target.post_process_program.is_some() {
+                    unsafe {
+                        gl::DeleteProgram(target.post_process_program.unwrap());
+                    };
+                }
+                let new_shader = create_post_process_shader(&src);
+                unsafe {
+                    target.post_process_res_loc =
+                        gl::GetUniformLocation(new_shader,
+                            b"resolution\0" as *const _ as *const i8);
+                    let diffuse_loc =
+                        gl::GetUniformLocation(new_shader, b"diffuse\0" as *const _ as *const i8);
+                    gl::UseProgram(new_shader);
+                    gl::Uniform1i(diffuse_loc, 0);
+                    gl::UseProgram(0);
+                }
+                target.post_process_program = Some(new_shader);
+            }
             _ => {}
         }
     }
@@ -486,7 +552,10 @@ pub fn draw_flat_target(target: &GlRenderTarget) {
         enable_blending();
         gl::Disable(gl::DEPTH_TEST);
         clear((0.0, 0.0, 0.0, 1.0));
-        gl::UseProgram(target.screen_program);
+        gl::UseProgram(target.post_process_program.unwrap_or(target.screen_program));
+        if target.post_process_res_loc != -1 {
+            gl::Uniform2i(target.post_process_res_loc, target.width, target.height);
+        }
 
         gl::ActiveTexture(gl::TEXTURE0);
         gl::BindTexture(gl::TEXTURE_2D, target.tex);

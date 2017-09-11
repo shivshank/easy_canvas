@@ -41,11 +41,11 @@ pub fn create(title: &str, width: i32, height: i32, refresh_rate: f64, cb: fn(Wi
     thread::spawn(move || {
         cb(surrogate);
     });
-    let target = drawing::create_render_target(width, height);
+    let mut target = drawing::create_render_target(width, height);
     while unsafe { glfwWindowShouldClose(window) } == 0 {
         // process any events that happened since the last tick (roughly refresh_rate
         // seconds ago)
-        let stale = drawing::parse_commands(&target, &rx);
+        let stale = drawing::parse_commands(&mut target, &rx);
         if stale {
             drawing::use_default_target();
             drawing::draw_flat_target(&target);
