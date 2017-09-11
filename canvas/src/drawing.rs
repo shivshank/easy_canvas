@@ -12,6 +12,7 @@ use std::os::raw::c_void;
 use std::mem::size_of_val;
 use std::i16;
 
+/// Default Vertex Shader used for rendering objects to a canvas layer
 static VERTEX_SHADER: &'static str = r#"
     #version 330 core
 
@@ -33,6 +34,7 @@ static VERTEX_SHADER: &'static str = r#"
     }
 "#;
 
+/// Default Fragment Shader used for rendering objects to a canvas layer
 static FRAGMENT_SHADER: &'static str = r#"
     #version 330 core
 
@@ -48,53 +50,16 @@ static FRAGMENT_SHADER: &'static str = r#"
     }
 "#;
 
-macro_rules! wrap_types {
-    (
-        $(
-            $(#[$attr:meta])*
-            pub struct $name:ident ( $inner:ty );
-        )+
-    ) => {
-        $(
-            // TODO: Do we want to new type Gl stuff? or nah?
-            /*
-            #[doc = "$comment"]
-            pub struct $name($inner);
-
-            impl Deref for $name {
-                type Target = $inner;
-
-                fn deref(&self) -> & $inner {
-                    &self.0
-                }
-            }
-
-            impl DerefMut for $name {
-                type Target = $inner;
-
-                fn deref_mut(&mut self) -> &mut $inner {
-                    &self.0
-                }
-            }
-            */
-            $(#[$attr])*
-            pub type $name = $inner;
-        )+
-    }
-}
-
-wrap_types! {
-    #[doc = "Framebuffer object"]
-    pub struct Fbo(GLuint);
-    pub struct Tex(GLuint);
-    #[doc = "Renderbuffer object"]
-    pub struct Rbo(GLuint);
-    #[doc = "Vertex array object"]
-    pub struct Vao(GLuint);
-    pub struct BuffObj(GLuint);
-    pub struct GlProgram(GLuint);
-    pub struct Shader(GLuint);
-}
+/// Framebuffer object
+pub type Fbo = GLuint;
+pub type Tex = GLuint;
+/// Renderbuffer object
+pub type Rbo = GLuint;
+/// Vertex array object
+pub type Vao = GLuint;
+pub type BuffObj = GLuint;
+pub type GlProgram = GLuint;
+pub type Shader = GLuint;
 
 pub struct GlRenderTarget {
     width: i32,
@@ -133,19 +98,15 @@ pub enum GlError {
 macro_rules! get_info_log {
     ($get_attr:ident, $get_log:ident, $gl_id:expr) => {{
         let mut log_length_glint: GLint = 0;
-        unsafe {
-            $get_attr($gl_id, gl::INFO_LOG_LENGTH, &mut log_length_glint);
-        }
+        $get_attr($gl_id, gl::INFO_LOG_LENGTH, &mut log_length_glint);
         let log_length = log_length_glint as usize;
         if log_length == 0 {
             None
         } else {
             let mut raw_log = Vec::<u8>::with_capacity(log_length);
-            unsafe {
-                $get_log($gl_id, log_length as GLsizei,
-                    0 as *mut GLsizei, raw_log.as_mut_ptr() as *mut GLchar);
-                raw_log.set_len(log_length);
-            }
+            $get_log($gl_id, log_length as GLsizei,
+                0 as *mut GLsizei, raw_log.as_mut_ptr() as *mut GLchar);
+            raw_log.set_len(log_length);
             let log = String::from_utf8(raw_log)
                 .expect("OpenGL returned invalid utf8 in a program info log");
             Some(log)
@@ -302,56 +263,56 @@ fn create_ms_cds_render_target(width: i32, height: i32) -> (Fbo, Tex, Rbo) {
         gl::BindTexture(gl::TEXTURE_2D_MULTISAMPLE, color_attach);
         gl::TexImage2DMultisample(gl::TEXTURE_2D_MULTISAMPLE, samples, gl::RGBA, width,
             height, gl::TRUE);
-            gl::FramebufferTexture2D(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0,
-                gl::TEXTURE_2D_MULTISAMPLE, color_attach, 0);
+        gl::FramebufferTexture2D(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0,
+            gl::TEXTURE_2D_MULTISAMPLE, color_attach, 0);
 
-                // create a renderbuffer to be used as depth and stencil
-                let mut rbo = 0;
-                gl::GenRenderbuffers(1, &mut rbo);
-                gl::BindRenderbuffer(gl::RENDERBUFFER, rbo);
-                gl::RenderbufferStorageMultisample(gl::RENDERBUFFER, samples, gl::DEPTH24_STENCIL8,
-                    width, height);
-                    gl::FramebufferRenderbuffer(gl::FRAMEBUFFER, gl::DEPTH_STENCIL_ATTACHMENT,
-                        gl::RENDERBUFFER, rbo);
+        // create a renderbuffer to be used as depth and stencil
+        let mut rbo = 0;
+        gl::GenRenderbuffers(1, &mut rbo);
+        gl::BindRenderbuffer(gl::RENDERBUFFER, rbo);
+        gl::RenderbufferStorageMultisample(gl::RENDERBUFFER, samples, gl::DEPTH24_STENCIL8,
+            width, height);
+        gl::FramebufferRenderbuffer(gl::FRAMEBUFFER, gl::DEPTH_STENCIL_ATTACHMENT,
+            gl::RENDERBUFFER, rbo);
 
-                        match gl::CheckFramebufferStatus(gl::FRAMEBUFFER) {
-                            gl::FRAMEBUFFER_COMPLETE => {},
-                            err => panic!("framebuffer is incomplete, status: {}", err)
-                        }
+        match gl::CheckFramebufferStatus(gl::FRAMEBUFFER) {
+            gl::FRAMEBUFFER_COMPLETE => {},
+            err => panic!("framebuffer is incomplete, status: {}", err)
+        }
 
-                        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
 
-                        (ms_fbo, color_attach, rbo)
-                    }
-                }
+        (ms_fbo, color_attach, rbo)
+    }
+}
 
-                fn create_color_render_target(width: i32, height: i32) -> (Fbo, Tex) {
-                    unsafe {
-                        let mut fbo = 0;
-                        gl::GenFramebuffers(1, &mut fbo);
-                        gl::BindFramebuffer(gl::FRAMEBUFFER, fbo);
+fn create_color_render_target(width: i32, height: i32) -> (Fbo, Tex) {
+    unsafe {
+        let mut fbo = 0;
+        gl::GenFramebuffers(1, &mut fbo);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, fbo);
 
-                        // create a color attachment texture
-                        let mut color_attach = 0;
-                        gl::GenTextures(1, &mut color_attach);
-                        gl::BindTexture(gl::TEXTURE_2D, color_attach);
-                        gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as i32, width, height, 0, gl::RGBA,
-                            gl::UNSIGNED_BYTE, ptr::null());
-                            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-                            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-                            gl::FramebufferTexture2D(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D,
-                                color_attach, 0);
+        // create a color attachment texture
+        let mut color_attach = 0;
+        gl::GenTextures(1, &mut color_attach);
+        gl::BindTexture(gl::TEXTURE_2D, color_attach);
+        gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as i32, width, height, 0, gl::RGBA,
+        gl::UNSIGNED_BYTE, ptr::null());
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+        gl::FramebufferTexture2D(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D,
+            color_attach, 0);
 
-                                match gl::CheckFramebufferStatus(gl::FRAMEBUFFER) {
-                                    gl::FRAMEBUFFER_COMPLETE => {},
-                                    err => panic!("framebuffer is incomplete, status: {}", err)
-                                }
+        match gl::CheckFramebufferStatus(gl::FRAMEBUFFER) {
+            gl::FRAMEBUFFER_COMPLETE => {},
+            err => panic!("framebuffer is incomplete, status: {}", err)
+        }
 
-                                gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
 
-                                (fbo, color_attach)
-                            }
-                        }
+        (fbo, color_attach)
+    }
+}
 
 /// Creates a Framebuffer with a 2d texture and depth/stencil renderbuffer attachments
 ///
@@ -385,7 +346,7 @@ pub fn create_render_target(width: i32, height: i32) -> GlRenderTarget {
             Vertex ([1.0, 1.0, 0.0f32], [255, 255, 255, 255u8], [i16::MAX, 0]),
 
             Vertex ([1.0, 1.0, 0.0f32], [255, 255, 255, 255u8], [i16::MAX, 0]),
-            Vertex ([-1.0, 1.0, 0.0f32], [255, 255, 255, 255u8], [0, 0]),
+            Vertex ([-0.5, 1.0, 0.0f32], [255, 255, 255, 255u8], [0, 0]),
             Vertex ([-1.0, -1.0, 0.0f32], [255, 255, 255, 255u8], [0, i16::MAX]),
         ];
         gl::BufferData(gl::ARRAY_BUFFER, size_of_val(&data) as isize,
@@ -407,6 +368,39 @@ pub fn create_render_target(width: i32, height: i32) -> GlRenderTarget {
     }
 }
 
+pub fn delete_render_target(target: GlRenderTarget) {
+    unsafe {
+        let GlRenderTarget {
+            width: _,
+            height: _,
+            ms_fbo,
+            ms_tex,
+            ms_rbo,
+            fbo,
+            tex,
+            diffuse_loc,
+            screen_program,
+            screen_quad_vao,
+            screen_quad_vbo,
+        } = target;
+
+        gl::UseProgram(0);
+        gl::DeleteProgram(screen_program);
+
+        gl::BindVertexArray(0);
+        gl::DeleteVertexArrays(1, &screen_quad_vao);
+
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        gl::DeleteBuffers(1, &screen_quad_vbo);
+
+        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        gl::DeleteFramebuffers(2, &[ms_fbo, fbo] as *const _);
+
+        gl::DeleteRenderbuffers(1, &ms_rbo);
+
+        gl::DeleteTextures(2, &[ms_tex, tex] as *const _);
+    }
+}
 
 pub fn use_ms_render_target(target: &GlRenderTarget) {
     unsafe {
@@ -471,15 +465,6 @@ pub fn draw_flat_target(target: &GlRenderTarget) {
         gl::BindVertexArray(0);
     }
 }
-
-/*
-pub fn render(target: &GlRenderTarget) {
-    use_ms_render_target(target);
-    update_flat_target(target);
-    use_default_target();
-    draw_flat_target(target);
-}
-*/
 
 pub fn print_gl_error(at: &'static str) {
     unsafe {

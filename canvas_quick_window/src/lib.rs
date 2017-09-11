@@ -42,18 +42,20 @@ pub fn create(title: &str, width: i32, height: i32, refresh_rate: f64, cb: fn(Wi
         cb(surrogate);
     });
     let target = drawing::create_render_target(width, height);
-    unsafe {
-        while glfwWindowShouldClose(window) == 0 {
-            // process any events that happened since the last tick (roughly refresh_rate
-            // seconds ago)
-            let stale = drawing::parse_commands(&target, &rx);
-            if stale {
-                drawing::draw_flat_target(&target);
-                glfwSwapBuffers(window);
-            }
-            drawing::print_gl_error("after render");
-            glfwWaitEventsTimeout(refresh_rate);
+    while unsafe { glfwWindowShouldClose(window) } == 0 {
+        // process any events that happened since the last tick (roughly refresh_rate
+        // seconds ago)
+        let stale = drawing::parse_commands(&target, &rx);
+        if stale {
+            drawing::draw_flat_target(&target);
+            unsafe { glfwSwapBuffers(window) };
         }
+        drawing::print_gl_error("after render");
+        unsafe { glfwWaitEventsTimeout(refresh_rate) };
+    }
+
+    drawing::delete_render_target(target);
+    unsafe {
         glfwTerminate();
     }
 }
