@@ -84,13 +84,19 @@ pub struct Vertex([f32; 3], [u8; 4], [i16; 2]);
 pub enum GlError {
     /// No error has been recorded. The value of this symbolic constant is guaranteed to be 0.
     NO_ERROR = gl::NO_ERROR,
-    /// An unacceptable value is specified for an enumerated argument. The offending command is ignored and has no other side effect than to set the error flag.
+    /// An unacceptable value is specified for an enumerated argument. The offending command is
+    /// ignored and has no other side effect than to set the error flag.
     INVALID_ENUM = gl::INVALID_ENUM,
-    /// A numeric argument is out of range. The offending command is ignored and has no other side effect than to set the error flag.
+    /// A numeric argument is out of range. The offending command is ignored and has no other side
+    /// effect than to set the error flag.
     INVALID_VALUE = gl::INVALID_VALUE,
-    /// The specified operation is not allowed in the current state. The offending command is ignored and has no other side effect than to set the error flag.
+    /// The specified operation is not allowed in the current state. The offending command is
+    /// ignored and has no other side effect than to set the error flag.
     INVALID_OPERATION = gl::INVALID_OPERATION,
-    /// The command is trying to render to or read from the framebuffer while the currently bound framebuffer is not framebuffer complete (i.e. the return value from glCheckFramebufferStatus is not FRAMEBUFFER_COMPLETE = gl::FRAMEBUFFER_COMPLETE). The offending command is ignored and has no other side effect than to set the error flag.
+    /// The command is trying to render to or read from the framebuffer while the currently bound
+    /// framebuffer is not framebuffer complete (i.e. the return value from
+    /// glCheckFramebufferStatus is not FRAMEBUFFER_COMPLETE = gl::FRAMEBUFFER_COMPLETE). The
+    /// offending command is ignored and has no other side effect than to set the error flag.
     INVALID_FRAMEBUFFER_OPERATION = gl::INVALID_FRAMEBUFFER_OPERATION,
     OUT_OF_MEMORY = gl::OUT_OF_MEMORY,
 }
