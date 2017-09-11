@@ -436,10 +436,26 @@ pub fn clear(color: Rgba) {
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
     }
 }
+pub fn enable_blending() {
+    unsafe {
+        gl::Enable(gl::BLEND);
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+        gl::BlendEquation(gl::FUNC_ADD);
+    }
+}
 
+/// Parse DrawCmds into OpenGL commands.
+///
+/// Updates the multi-sampled FBO and copies the result to the "flat" FBO.
+///
+/// Enables blending and Depth test.
 pub fn parse_commands(target: &GlRenderTarget, rx: &Receiver<DrawCmd>) -> bool {
+    enable_blending();
+    unsafe { gl::Enable(gl::DEPTH_TEST) };
     use_ms_render_target(target);
+    let mut stale = false;
     while let Ok(cmd) = rx.try_recv() {
+        stale = true;
         match cmd {
             DrawCmd::Clear(c) => {
                 clear(c);
@@ -447,14 +463,23 @@ pub fn parse_commands(target: &GlRenderTarget, rx: &Receiver<DrawCmd>) -> bool {
             _ => {}
         }
     }
-    update_flat_target(target);
-    use_default_target();
-    true
+    if stale {
+        update_flat_target(target);
+        use_default_target();
+    }
+    stale
 }
 
 /// Render the flat color texture to whatever framebuffer is currently bound.
+///
+/// Clears the current framebuffer to black.
+///
+/// Enables blending and disables the depth test.
 pub fn draw_flat_target(target: &GlRenderTarget) {
     unsafe {
+        enable_blending();
+        gl::Disable(gl::DEPTH_TEST);
+        clear((0.0, 0.0, 0.0, 1.0));
         gl::UseProgram(target.screen_program);
 
         gl::ActiveTexture(gl::TEXTURE0);

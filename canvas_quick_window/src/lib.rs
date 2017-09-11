@@ -47,6 +47,7 @@ pub fn create(title: &str, width: i32, height: i32, refresh_rate: f64, cb: fn(Wi
         // seconds ago)
         let stale = drawing::parse_commands(&target, &rx);
         if stale {
+            drawing::use_default_target();
             drawing::draw_flat_target(&target);
             unsafe { glfwSwapBuffers(window) };
         }
