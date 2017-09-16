@@ -462,18 +462,18 @@ pub fn use_ms_render_target(target: &GlRenderTarget) {
     }
 }
 
+pub fn use_flat_render_target(target: &GlRenderTarget) {
+    unsafe {
+        gl::BindFramebuffer(gl::FRAMEBUFFER, target.fbo);
+    }
+}
+
 pub fn update_flat_target(target: &GlRenderTarget) {
     unsafe {
         gl::BindFramebuffer(gl::READ_FRAMEBUFFER, target.ms_fbo);
         gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, target.fbo);
         gl::BlitFramebuffer(0, 0, target.width, target.height, 0, 0, target.width, target.height,
             gl::COLOR_BUFFER_BIT, gl::NEAREST);
-    }
-}
-
-pub fn use_flat_render_target(target: &GlRenderTarget) {
-    unsafe {
-        gl::BindFramebuffer(gl::FRAMEBUFFER, target.fbo);
     }
 }
 
