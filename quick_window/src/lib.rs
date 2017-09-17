@@ -1,9 +1,9 @@
 extern crate glfw;
-extern crate canvas;
+extern crate easy_canvas;
 extern crate gl;
 
-use canvas::drawing;
-use canvas::{DrawCmd, Host};
+use easy_canvas::drawing;
+use easy_canvas::{DrawCmd, Host};
 
 use glfw::ffi::*;
 

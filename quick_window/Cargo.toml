@@ -1,5 +1,5 @@
 [package]
-name = "canvas_quick_window"
+name = "easy_canvas_quick_window"
 version = "0.1.0"
 authors = ["shivshank"]
 
@@ -12,6 +12,6 @@ gl = "0.6.0"
 git = "https://github.com/bjz/glfw-rs.git"
 default-features = false
 
-[dependencies.canvas]
-path = "../canvas"
+[dependencies.easy_canvas]
+path = "../easy_canvas"
 features = ["drawing"]

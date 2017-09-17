@@ -1,7 +1,7 @@
-extern crate canvas;
-extern crate canvas_quick_window as quick_window;
+extern crate easy_canvas;
+extern crate easy_canvas_quick_window as quick_window;
 
-use canvas::Target;
+use easy_canvas::Target;
 
 use quick_window::Window;
 
@@ -13,7 +13,7 @@ fn main() {
 }
 
 fn mandelbrot(mut window: Window) {
-    let ctx = canvas::create(&mut window, 640, 360);
+    let ctx = easy_canvas::create(&mut window, 640, 360);
 
     let mut frag_source = String::new();
     File::open("examples/res/mandelbrot.glsl")
