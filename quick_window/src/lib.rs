@@ -12,7 +12,11 @@ use std::ptr;
 use std::thread;
 use std::sync::mpsc::{channel, Sender};
 
-/// Passed to the callback, used to obtain the transmitter for notifying window of draw calls.
+/// A basic `Host` implementation.
+///
+/// Passed to the [`create`][create] callback `cb`. Users cannot create this directly.
+///
+/// [create]: ./fn.create.html
 pub struct Window {
     /// Used by one target to issue draw calls from another thread
     tx: Option<Sender<DrawCmd>>
@@ -32,7 +36,11 @@ impl Host for Window {
     }
 }
 
-/// Create a new window that listens for draw commands issued from a thread initiated with cb.
+/// Create a new window.
+///
+/// Spawns a new thread and passes in a `Window` instance representing the `Host` object on the 
+/// parent thread. The newly created window will listen for drawing commands on the main thread. 
+/// The `Window` instance can be used to obtain the sender.
 pub fn create(title: &str, width: i32, height: i32, refresh_rate: f64, cb: fn(Window)) {
     let window = create_raw(title, width, height);
     unsafe {

@@ -8,26 +8,25 @@ use std::sync::mpsc::Sender;
 
 /// A generic drawing target.
 pub trait Target {
-    fn draw<D: ToDrawCmd>(&self, Transform, Style, shape: D);
+    fn draw<D: ToDrawCmd>(&self, transform: Transform, style: Style, shape: D);
 
     fn clear<C: Color>(&self, color: C);
 
-    fn with_state<F: FnMut(ImplicitTarget<Self>)>(&self, Transform, Style, cb: F);
+    fn with_state<F: FnMut(ImplicitTarget<Self>)>(&self, transform: Transform, style: Style, cb: F);
 
-    /// Implies an implementaiton defined default style.
+    /// Execute `cb` where each draw call has an implict transform.
     ///
-    /// Users are encouraged to use the draw_with_style function on the implict target.
-    ///
-    /// Implementors are encouraged to use fill black.
-    fn with_transform<F: FnMut(ImplicitTarget<Self>)>(&self, Transform, cb: F);
+    /// Users are encouraged to use the draw_with_style function on the implict target since the
+    /// implicit style is implementation defined.
+    fn with_transform<F: FnMut(ImplicitTarget<Self>)>(&self, transform: Transform, cb: F);
 
-    /// Implies identity transformation.
-    ///
-    /// Users are encouraged to use the draw_with_transform function on the implict target.
-    fn with_style<F: FnMut(ImplicitTarget<Self>)>(&self, Style, cb: F);
+    /// Execute `cb` where each draw call has an implicit style and no implict transform.
+    fn with_style<F: FnMut(ImplicitTarget<Self>)>(&self, style: Style, cb: F);
 }
 
-/// Stores a transform and style as implicit constants for draw calls.
+/// Wraps a parent Target and pairs it with an implict transform and style.
+///
+/// See [Target](#trait.Target).
 pub struct ImplicitTarget<'p, T: Target + 'p> {
     parent: &'p T,
     transform: Transform,
@@ -64,6 +63,9 @@ impl<'p, T: Target> ImplicitTarget<'p, T> {
     }
 }
 
+/// A basic implementation of a Target.
+///
+/// Provides a few extra unstable goodies.
 pub struct Canvas {
     tx: Sender<DrawCmd>,
 }
@@ -112,9 +114,7 @@ impl Canvas {
     }
 }
 
-/// Wraps Canvas::new().
-///
-/// Not idiomatic Rust, but I think it's a nice method to have for this library ;)
+/// Wraps [`Canvas::new`](./struct.Canvas.html).
 #[inline]
 pub fn create<H: Host>(host: &mut H, width: u32, height: u32) -> Canvas {
     Canvas::new(host, width, height)

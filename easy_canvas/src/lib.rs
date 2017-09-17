@@ -1,15 +1,12 @@
-//! An easy to use html-canvas-like API for 2d drawing.
+//! An easy to use 2D drawing library for Rust.
 //!
-//! `canvas` assumes an OpenGL context is available and will make OpenGL calls to whatever context
-//! is current on the present thread. `canvas` makes many assumptions about the current state of
-//! the GL, so if you need to insert your own calls make sure to clean up your state when done.
+//! `easy_canvas` is completely independent from any drawing or windowing library. 
 //!
-//! Currently provides one kind of canvas:
-//!
-//! - flat, a very basic canvas that simply renders commands to a target, depths are resolved
-//! by render order. The canvas will not automatically clear itself and changes to the camera will
-//! only be reflected in the following render commands. Nearly identical to HTML canvas.
-//!
+//! A simple canvas implementation can be created via [`easy_canvas::create`][create] by providing
+//! a [`Host`][host]. The `quick_window` library is recomended to get started quickly.
+//! 
+//! [create]: ./canvas/fn.create.html
+//! [host]: ./host/trait.Host.html
 
 extern crate cgmath;
 #[cfg(feature = "drawing")]

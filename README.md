@@ -32,3 +32,5 @@ TODO:
 - Move drawing module to another crate
 - Path API
 - C API
+
+- Should `Host::sender` return an optional `Sender`?

@@ -16,6 +16,7 @@ macro_rules! make_shapes {
         }
 
         $(
+            $(#[$attr:meta])*
             pub struct $struct_form:ident aka $func_form:ident {
                 $(
                     $field:ident : $field_ty:ty
@@ -38,6 +39,7 @@ macro_rules! make_shapes {
         }
 
         $(
+            $(#[$attr])*
             pub struct $struct_form {
                 $(
                     pub $field: $field_ty
@@ -74,6 +76,7 @@ make_shapes! {
         Stop {},
     }
 
+    #[doc = "A Rectangle with a given position, width, and height."]
     pub struct Rect aka rect {
         x: f32,
         y: f32,
@@ -81,6 +84,7 @@ make_shapes! {
         height: f32,
     }
 
+    #[doc = "A Line between two given points."]
     pub struct Line aka line {
         x1: f32,
         y1: f32,
@@ -88,12 +92,17 @@ make_shapes! {
         y2: f32,
     }
 
+    #[doc = "A Circle with a given radius around a point."]
     pub struct Circle aka circle {
         x: f32,
         y: f32,
         radius: f32,
     }
 
+    #[doc = "An Arc struck from around a point with a given radius.
+
+The arc is from `start_angle` to `end_angle` from the positive x-axis and goes counter
+clockwise. Both angles are in radians."]
     pub struct Arc aka arc {
         x: f32,
         y: f32,
