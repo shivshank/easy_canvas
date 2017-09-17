@@ -1,13 +1,13 @@
 # Easy Canvas
-Easy Canvas is a rust library designed to make it easy to prototype ideas that need a 2d drawing API. Most other libraries are powerful yet cumbersome to use, especially for toying around and making simple examples.
+Easy Canvas is a 2D Rust drawing library designed to be easy to use. Most other libraries are powerful but annoying to use for toying around and making simple examples.
 
-Easy Canvas is inspired by the HTML5 Canvas API. Notably, it uses similar primitives (Rect, Arc, Path)
+Easy Canvas is inspired by the HTML5 Canvas API. Notably, it uses similar primitives (Rect, Arc, Path), but has no concept of state. Like the HTML5 Canavs, when drawing Rects rotations can only be specified via a transform, but unlike HTML5 Canvas, the transform is not a part of the Canvas' state. Transforms must be supplied explicitly. Styles work similarly.
 
 # Event Handling
 
 Currently `quick_window` does not provide any way to handle events.
 
-The front end window is however 100% separate from the canvas. If you want to roll your own event loop quickly, you can use 
+The front end window is however 100% separate from the canvas. If you want to roll your own event loop quickly, you can use any windowing library (such as `glutin`) and the drawing module provided behind the "drawing" feature flag in `easy_canvas`. (n.b., the drawing module is unstable and very rough around the edges, although easy to interface with; see `quick_window` for how to use it).
 
 # Easy Canvas is a work in progress.
 
@@ -29,3 +29,6 @@ TODO:
 
 - Add support for (easy) event handling.
 - Clean up drawing API in `easy_canvas` (don't look at it, it's gross!).
+- Move drawing module to another crate
+- Path API
+- C API
