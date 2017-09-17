@@ -47,7 +47,11 @@ pub fn create(title: &str, width: i32, height: i32, refresh_rate: f64, cb: fn(Wi
     while unsafe { glfwWindowShouldClose(window) } == 0 {
         // process any events that happened since the last tick (roughly refresh_rate
         // seconds ago)
-        let stale = drawing::parse_commands(&mut target, &rx);
+        let (stale, exit) = drawing::parse_commands(&mut target, &rx);
+        if exit {
+            unsafe { glfwSetWindowShouldClose(window, if true { 1 } else { 0 }) };
+            continue;
+        }
         if stale {
             drawing::use_default_target();
             drawing::draw_flat_target(&target);

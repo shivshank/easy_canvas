@@ -71,6 +71,7 @@ make_shapes! {
         ..,
         Clear(Rgba),
         UsePostProcess(String),
+        Stop {},
     }
 
     pub struct Rect aka rect {

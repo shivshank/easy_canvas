@@ -105,6 +105,11 @@ impl Canvas {
         self.tx.send(DrawCmd::UsePostProcess(shader.to_string()))
             .expect("Canvas host hung up");
     }
+
+    pub fn stop(self) {
+        self.tx.send(DrawCmd::Stop {})
+            .expect("Canvas host hung up");
+    }
 }
 
 /// Wraps Canvas::new().

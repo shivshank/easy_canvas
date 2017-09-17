@@ -500,10 +500,12 @@ pub fn enable_blending() {
 
 /// Parse DrawCmds into OpenGL commands.
 ///
-/// Updates the multi-sampled FBO and copies the result to the "flat" FBO.
+/// Updates the multi-sampled FBO and copies the result to the "flat" FBO. Returns whether or not 
+/// anything was drawn (e.g. if the currently shown framebuffer is "stale") and whether or not the
+/// window should keep running.
 ///
 /// Enables blending and Depth test.
-pub fn parse_commands(target: &mut GlRenderTarget, rx: &Receiver<DrawCmd>) -> bool {
+pub fn parse_commands(target: &mut GlRenderTarget, rx: &Receiver<DrawCmd>) -> (bool, bool) {
     enable_blending();
     unsafe { gl::Enable(gl::DEPTH_TEST) };
     use_ms_render_target(target);
@@ -511,6 +513,9 @@ pub fn parse_commands(target: &mut GlRenderTarget, rx: &Receiver<DrawCmd>) -> bo
     while let Ok(cmd) = rx.try_recv() {
         stale = true;
         match cmd {
+            DrawCmd::Stop {} => {
+                return (false, true)
+            }
             DrawCmd::Clear(c) => {
                 clear(c);
             }
@@ -540,7 +545,7 @@ pub fn parse_commands(target: &mut GlRenderTarget, rx: &Receiver<DrawCmd>) -> bo
         update_flat_target(target);
         use_default_target();
     }
-    stale
+    (stale, false)
 }
 
 /// Render the flat color texture to whatever framebuffer is currently bound.
