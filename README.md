@@ -1,7 +1,7 @@
 # Easy Canvas
 Easy Canvas is a 2D Rust drawing library designed to be easy to use. Most other libraries are powerful but annoying to use for toying around and making simple examples.
 
-Easy Canvas is inspired by the HTML5 Canvas API. Notably, it uses similar primitives (Rect, Arc, Path), but has no concept of state. Like the HTML5 Canavs, when drawing Rects rotations can only be specified via a transform, but unlike HTML5 Canvas, the transform is not a part of the Canvas' state. Transforms must be supplied explicitly. Styles work similarly.
+Easy Canvas is inspired by the HTML5 Canvas API. Notably, it uses similar primitives (Rect, Arc, Path), but has no concept of state. Like the HTML5 Canavs, when drawing Rects, rotations can only be specified via a transform, but unlike HTML5 Canvas, the transform is not a part of the Canvas' state. Transforms must be supplied explicitly. Styles work similarly.
 
 # Event Handling
 
