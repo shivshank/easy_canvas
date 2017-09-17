@@ -1,8 +1,6 @@
 extern crate easy_canvas;
 extern crate easy_canvas_quick_window as quick_window;
 
-use easy_canvas::Target;
-
 use quick_window::Window;
 
 use std::fs::File;
@@ -22,6 +20,4 @@ fn mandelbrot(mut window: Window) {
         .expect("Failed to read contents");
 
     ctx.use_post_process(&frag_source);
-
-    ctx.clear((200, 150, 200, 0.25));
 }
