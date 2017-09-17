@@ -1,8 +1,9 @@
 use color::Rgba;
 use style::Style;
+use transform::Transform;
 
 pub trait ToDrawCmd {
-    fn with_style(self, style: Style) -> DrawCmd;
+    fn with_state(self, transform: Transform, style: Style) -> DrawCmd;
 }
 
 macro_rules! make_shapes {
@@ -27,6 +28,7 @@ macro_rules! make_shapes {
                 $struct_form {
                     $func_form: $struct_form,
                     style: Style,
+                    transform: Transform,
                 }
             ),*,
 
@@ -43,8 +45,8 @@ macro_rules! make_shapes {
             }
 
             impl ToDrawCmd for $struct_form {
-                fn with_style(self, style: Style) -> DrawCmd {
-                    DrawCmd::$struct_form { $func_form: self, style }
+                fn with_state(self, transform: Transform, style: Style) -> DrawCmd {
+                    DrawCmd::$struct_form { $func_form: self, style, transform }
                 }
             }
 

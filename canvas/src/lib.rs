@@ -18,11 +18,17 @@ extern crate gl;
 pub mod color;
 pub mod style;
 pub mod shape;
+pub mod transform;
 pub mod canvas;
+pub mod host;
 #[cfg(feature = "drawing")]
 pub mod drawing;
 
 pub use color::*;
 pub use style::*;
 pub use shape::*;
+pub use transform::*;
 pub use canvas::*;
+pub use host::*;
+
+pub use cgmath::{Angle, Deg, Rad};

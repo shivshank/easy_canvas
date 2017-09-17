@@ -3,7 +3,7 @@ extern crate canvas;
 extern crate gl;
 
 use canvas::drawing;
-use canvas::DrawCmd;
+use canvas::{DrawCmd, Host};
 
 use glfw::ffi::*;
 
@@ -14,17 +14,19 @@ use std::sync::mpsc::{channel, Sender};
 
 /// Passed to the callback, used to obtain the transmitter for notifying window of draw calls.
 pub struct Window {
+    /// Used by one target to issue draw calls from another thread
     tx: Option<Sender<DrawCmd>>
 }
 
 impl Window {
     fn new(tx: Sender<DrawCmd>) -> Window {
         Window {
-            tx: Some(tx)
+            tx: Some(tx),
         }
     }
 }
-impl canvas::Host for Window {
+
+impl Host for Window {
     fn sender(&mut self) -> Option<Sender<DrawCmd>> {
         self.tx.take()
     }
