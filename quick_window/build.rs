@@ -7,7 +7,6 @@ fn main() {
         let mut path = PathBuf::new();
         path.push(dir);
         path.push("glfw");
-        println!("cargo:warning={:?}", path);
         println!("cargo:rustc-link-search=native={}", path.to_string_lossy());
     }
 }
