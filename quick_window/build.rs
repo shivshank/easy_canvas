@@ -1,3 +1,5 @@
 fn main() {
-    println!("cargo:rustc-link-search=native=glfw");
+    #[cfg(windows)] {
+        println!("cargo:rustc-link-search=native=glfw");
+    }
 }
