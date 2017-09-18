@@ -57,7 +57,7 @@ fn lerp(a: f32, b: f32, alpha: f32) -> f32 {
 
 ## Shader Playground
 
-`quick_window` **also includes a shader playground binary** which you may find of interest. The interface is similar to [shadertoy.com](https://www.shadertoy.com/), but currently lacks support for many features. Your best resource for know what is and isn't supported at the moment is to check out the `create_post_process_shader` function in the `easy_canvas::drawing` module.
+`quick_window` **also includes a shader playground binary** which you may find of interest. The interface is similar to [shadertoy.com](https://www.shadertoy.com/), but currently lacks support for many features. Your best resource for knowing what is and isn't supported at the moment is to check out the `create_post_process_shader` function in the `easy_canvas::drawing` module.
 
 To build/run the binary you can run:
 
@@ -67,17 +67,19 @@ cargo build -p easy_canvas_quick_window --bin shader_playground
 
 When exectued, the binary will either use the first argument as a path to a partial fragment shader file containing a `mainImage` function or look for `playground.glsl` in the current working directory.
 
+See the `mandelbrot.glsl` file under `quick_window`'s examples to see an example of a post process shader in action.
+
 ## Building
 
 Since the library currently depends on `glfw-rs`, you will need to be able to link with GLFW.
 
-On Mac and Linux that means you will need to compile GLFW. On Windows, that means you can either try to compile it, let `glfw-rs` try and probably fail (you , or use a precompiled library file which is convieniently 
+On Mac and Linux that means you will need to compile GLFW and make sure it's in `rustc`'s native lib search path. On Windows, that means you can either try to compile it, let `glfw-rs` try and probably fail to compile it for you, or use a precompiled library file which is *conveniently included for you*! The build script on Windows will attempt to link with the pre packaged glfw. (If you want to link with a different version you will need to manually change the build script at the moment.)
 
 ## Event Handling
 
 Currently `quick_window` does not provide any way to handle events.
 
-The front end window is however 100% separate from the canvas. If you want to roll your own event loop quickly, you can use any windowing library (such as `glutin`) and the drawing module provided behind the "drawing" feature flag in `easy_canvas`. (n.b., the drawing module is unstable and very rough around the edges, although easy to interface with; see `quick_window` for how to use it).
+The `quick_window` is however 100% separate from `easy_canvas`. If you want to roll your own event loop quickly, you can use any windowing library (such as `glutin`) and the drawing module provided behind the "drawing" feature flag in `easy_canvas`. (n.b., the drawing module is unstable and very rough around the edges, although easy to interface with; see `quick_window` as an example for how to use it).
 
 ## Easy Canvas is a work in progress.
 
