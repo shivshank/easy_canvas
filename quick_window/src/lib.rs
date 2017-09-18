@@ -1,5 +1,5 @@
 extern crate glfw;
-extern crate easy_canvas;
+pub extern crate easy_canvas;
 extern crate gl;
 
 use easy_canvas::drawing;
